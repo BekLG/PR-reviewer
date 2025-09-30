@@ -48,7 +48,7 @@ for file_path, changes in pr_diff.items():
         })
 
 # ✅ Post to GitHub ISSUE COMMENTS endpoint (working)
-GITHUB_TOKEN = os.environ["GH_TOKEN"]
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO = os.environ["GITHUB_REPOSITORY"]
 PR_NUMBER = os.environ["PR_NUMBER"]
 
