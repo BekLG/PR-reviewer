@@ -20,7 +20,6 @@ Code:
 # Gemini API endpoint
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
-# Prepare review comments per file
 review_comments = []
 
 for file_path, changes in pr_diff.items():
@@ -39,6 +38,7 @@ for file_path, changes in pr_diff.items():
         
         resp = requests.post(GEMINI_URL, headers=headers, json=payload)
         resp_json = resp.json()
+        
         ai_comment = resp_json.get("output_text", "No response from Gemini.")
         
         review_comments.append({
@@ -47,25 +47,21 @@ for file_path, changes in pr_diff.items():
             "body": ai_comment
         })
 
-# Post to GitHub Pull Request Reviews API
+# ✅ Post to GitHub ISSUE COMMENTS endpoint (working)
 GITHUB_TOKEN = os.environ["GH_TOKEN"]
 REPO = os.environ["GITHUB_REPOSITORY"]
 PR_NUMBER = os.environ["PR_NUMBER"]
-COMMIT_SHA = os.environ["GITHUB_SHA"]
 
-API_URL = f"https://api.github.com/repos/{REPO}/pulls/{PR_NUMBER}/reviews"
-
-data = {
-    "commit_id": COMMIT_SHA,
-    "body": "Automated AI review",
-    "event": "COMMENT",
-    "comments": review_comments
-}
+GITHUB_API_URL = f"https://api.github.com/repos/{REPO}/issues/{PR_NUMBER}/comments"
 
 headers = {
     "Authorization": f"token {GITHUB_TOKEN}",
-    "Accept": "application/vnd.github.v3+json"
+    "Accept": "application/vnd.github.v3+json",
+    "Content-Type": "application/json"
 }
 
-resp = requests.post(API_URL, headers=headers, json=data)
-print(resp.status_code, resp.text)
+# ✅ Post comments one by one
+for comment in review_comments:
+    body = f"**File:** `{comment['path']}`, **Line:** {comment['line']}\n\n{comment['body']}"
+    resp = requests.post(GITHUB_API_URL, headers=headers, json={"body": body})
+    print(resp.status_code, resp.text)
