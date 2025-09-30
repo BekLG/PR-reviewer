@@ -9,7 +9,7 @@ diff_file = sys.argv[1]
 with open(diff_file) as f:
     pr_diff = json.load(f)
 
-# Your custom prompt template
+# Custom prompt template
 PROMPT_TEMPLATE = """
 You are an expert code reviewer.
 For the following code snippet, provide concise, constructive comments.
@@ -23,31 +23,42 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0
 review_comments = []
 
 for file_path, changes in pr_diff.items():
-    for change in changes:
-        code_snippet = change["code"]
-        prompt = PROMPT_TEMPLATE.format(code=code_snippet)
-        
-        headers = {
-            "Authorization": f"Bearer {os.environ['GEMINI_API_KEY']}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "prompt": prompt,
-            "max_output_tokens": 150
-        }
-        
-        resp = requests.post(GEMINI_URL, headers=headers, json=payload)
-        resp_json = resp.json()
-        
-        ai_comment = resp_json.get("output_text", "No response from Gemini.")
-        
-        review_comments.append({
-            "path": file_path,
-            "line": change["line"],
-            "body": ai_comment
-        })
+    # Combine all changed lines in this file
+    combined_snippet = "\n".join([c["code"] for c in changes])
+    prompt = PROMPT_TEMPLATE.format(code=combined_snippet)
 
-# ✅ Post to GitHub ISSUE COMMENTS endpoint (working)
+    headers = {
+        "Authorization": f"Bearer {os.environ['GEMINI_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
+    }
+
+    resp = requests.post(GEMINI_URL, headers=headers, json=payload)
+    resp_json = resp.json()
+
+    ai_comment = (
+        resp_json.get("candidates", [{}])[0]
+          .get("content", {})
+          .get("parts", [{}])[0]
+          .get("text", "No response from Gemini.")
+    )
+
+    # Save a single comment per file
+    review_comments.append({
+        "path": file_path,
+        "body": ai_comment
+    })
+
+# Post to GitHub ISSUE COMMENTS endpoint (one comment per file)
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO = os.environ["GITHUB_REPOSITORY"]
 PR_NUMBER = os.environ["PR_NUMBER"]
@@ -60,8 +71,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
-# ✅ Post comments one by one
 for comment in review_comments:
-    body = f"**File:** `{comment['path']}`, **Line:** {comment['line']}\n\n{comment['body']}"
+    body = f"**Review for file:** `{comment['path']}`\n\n{comment['body']}"
     resp = requests.post(GITHUB_API_URL, headers=headers, json={"body": body})
     print(resp.status_code, resp.text)
