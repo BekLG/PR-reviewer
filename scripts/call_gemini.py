@@ -28,9 +28,9 @@ for file_path, changes in pr_diff.items():
     prompt = PROMPT_TEMPLATE.format(code=combined_snippet)
 
     headers = {
-        "Authorization": f"Bearer {os.environ['GEMINI_API_KEY']}",
-        "Content-Type": "application/json"
-    }
+    "Content-Type": "application/json",
+    "X-goog-api-key": os.environ["GEMINI_API_KEY"]
+}
 
     payload = {
         "contents": [
