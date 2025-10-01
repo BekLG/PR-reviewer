@@ -1,1 +1,1 @@
-Just a test repository ti check my Ai PR reviewer
+Just a test repository to test/check my Ai PR reviewer workflow
