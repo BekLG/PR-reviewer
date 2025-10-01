@@ -12,20 +12,20 @@ jobs:
   run-review:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the target repo (the one the PR is from)
+      # Checkout the target repo (the one being reviewed)
       - uses: actions/checkout@v3
 
-      # Checkout your shared AI reviewer scripts
+      # Checkout your shared AI reviewer repo into "tools"
       - uses: actions/checkout@v3
         with:
           repository: BekLG/Ai-PR-reviewer
           path: tools
 
-      # Install Python deps
+      # Install Python dependencies
       - name: Install dependencies
-      - run: pip install requests
+        run: pip install requests
 
-      # Run the script
+      # Run the AI reviewer script
       - name: Run AI reviewer
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
